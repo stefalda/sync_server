@@ -6,12 +6,19 @@ import 'package:sync_server/db/models/user_client.dart';
 import 'package:sync_server/shared/models/sync_data.dart';
 
 class DatabaseRepository {
+  String _basePath = ".";
+
   static final DatabaseRepository _singleton = DatabaseRepository._internal();
   factory DatabaseRepository() {
     return _singleton;
   }
 
   DatabaseRepository._internal();
+
+  ///Path where to store the databases
+  setBasePath(String path) {
+    _basePath = path;
+  }
 
   /* 
   Open or create a DB for the passed realm
@@ -33,7 +40,7 @@ class DatabaseRepository {
       if (random) {
         realm = DateTime.now().millisecondsSinceEpoch.toString();
       }
-      dbPath = "./syncDatabase_${realm!}.sqlite";
+      dbPath = "$_basePath/syncDatabase_${realm!}.sqlite";
     }
     /*  final docDir = await getApplicationDocumentsDirectory();
       if (!await docDir.exists()) {

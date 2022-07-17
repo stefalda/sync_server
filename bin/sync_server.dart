@@ -1,20 +1,29 @@
 import 'dart:convert';
 
+// ignore: depend_on_referenced_packages
 import 'package:args/args.dart';
 import 'package:shelf_plus/shelf_plus.dart';
 import 'package:sync_server/api/models/client_changes.dart';
 import 'package:sync_server/api/models/user_registration.dart';
 import 'package:sync_server/api/sync_helper.dart';
 import 'package:sync_server/api/users_helper.dart';
+import 'package:sync_server/db/database_repository.dart';
 
 void main(List<String> arguments) async {
   final parser = ArgParser()
-    ..addOption("host", defaultsTo: "localhost")
-    ..addOption("port", defaultsTo: "8080");
+    ..addOption("host",
+        defaultsTo: "localhost", help: "Server address, default to localhost")
+    ..addOption("port",
+        defaultsTo: "8080", help: "Server port, default to 8080")
+    ..addOption("dbPath",
+        help:
+            "Set the folder where the databases can be read and written according to the user permissions");
   ArgResults argResults = parser.parse(arguments);
   final int port = int.parse(argResults["port"]);
   final String host = argResults["host"];
-
+  if (argResults['dbPath'] != null) {
+    DatabaseRepository().setBasePath(argResults['dbPath']);
+  }
   shelfRun(init,
       defaultBindAddress: host,
       defaultBindPort: port,
