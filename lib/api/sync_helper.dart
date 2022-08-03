@@ -16,9 +16,10 @@ class SyncHelper {
       required String realm}) async {
     final SyncDetails syncDetails = SyncDetails();
     await DatabaseRepository().openTheDB(realm);
+    UserClient? userClient;
     try {
       // Ottieni il client
-      final UserClient? userClient =
+      userClient =
           await DatabaseRepository().getUserClient(clientid, realm: realm);
       if (userClient == null) {
         throw Exception("Client id not found!");
@@ -72,6 +73,15 @@ class SyncHelper {
       // Aggiungi a syncDetails le modifiche presenti sul server e da applicare sul client
       syncDetails.data.addAll(serverChanges);
       return syncDetails;
+    } catch (err, stacktrace) {
+      print("Exception: $err");
+      print("Stacktrace: $stacktrace");
+      // Mark sync as completed
+      if (userClient != null) {
+        userClient.syncing = null;
+        await DatabaseRepository().setUserClient(userClient, realm: realm);
+      }
+      rethrow;
     } finally {
       DatabaseRepository().closeTheDB(realm);
     }

@@ -261,7 +261,7 @@
     },
     {
       "name": "sqlite_wrapper",
-      "rootUri": "file:///Users/ste/.pub-cache/hosted/pub.dartlang.org/sqlite_wrapper-0.1.0",
+      "rootUri": "file:///Users/ste/.pub-cache/hosted/pub.dartlang.org/sqlite_wrapper-0.1.1",
       "packageUri": "lib/",
       "languageVersion": "2.17"
     },
@@ -362,7 +362,7 @@
       "languageVersion": "2.17"
     }
   ],
-  "generated": "2022-07-17T09:47:11.755306Z",
+  "generated": "2022-08-02T15:30:00.374902Z",
   "generator": "pub",
-  "generatorVersion": "2.17.5"
+  "generatorVersion": "2.17.6"
 }

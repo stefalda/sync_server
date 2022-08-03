@@ -51,8 +51,9 @@ Handler init() {
   app.post('/pull/<realm>', (Request request) async {
     final String realm = request.routeParameter('realm');
     print("\n/pull for $realm");
-    final ClientChanges clientChanges =
-        ClientChanges.fromMap(await request.body.asJson);
+    final json = await request.body.asJson;
+    print("\n/pull $json\n\n-----------------------------------------------\n");
+    final ClientChanges clientChanges = ClientChanges.fromMap(await json);
     final res = jsonEncode(await SyncHelper.pull(
         clientid: clientChanges.clientId,
         lastSync: clientChanges.lastSync,
@@ -76,7 +77,7 @@ Handler init() {
     final String realm = request.routeParameter('realm');
     print("/push to $realm ");
     final json = await request.body.asJson;
-    print("\n/push $json");
+    print("\n/push $json\n\n-----------------------------------------------\n");
 
     final ClientChanges clientChanges = ClientChanges.fromMap(json);
     return jsonEncode(await SyncHelper.push(
