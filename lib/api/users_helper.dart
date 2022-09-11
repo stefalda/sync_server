@@ -47,7 +47,7 @@ class UserHelper {
         await DatabaseRepository().setUserClient(userClient, realm: realm);
       }
     } finally {
-      DatabaseRepository().closeTheDB(realm);
+      await DatabaseRepository().closeTheDB(realm);
     }
   }
 
@@ -62,10 +62,16 @@ class UserHelper {
       if (user == null) {
         throw ("Username or password missing");
       }
-      // Delete from all tables
-      DatabaseRepository().deleteUserData(user.id!, realm: realm);
+      if (userRegistration.deleteRemoteData) {
+        // Delete from all tables
+        await DatabaseRepository().deleteUserData(user.id!, realm: realm);
+      } else {
+        // Delete only the client
+        await DatabaseRepository()
+            .deleteClient(user.id!, userRegistration.clientId, realm: realm);
+      }
     } finally {
-      DatabaseRepository().closeTheDB(realm);
+      await DatabaseRepository().closeTheDB(realm);
     }
   }
 }

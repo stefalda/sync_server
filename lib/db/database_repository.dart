@@ -220,4 +220,29 @@ class DatabaseRepository {
       DELETE FROM users WHERE id =$userid;
       """, dbName: realm);
   }
+
+  /// Delete just the client for the passed user
+  Future<void> deleteClient(int userId, String client,
+      {required String realm}) async {
+    return SQLiteWrapper().execute(
+        "DELETE FROM user_clients WHERE userid = ? AND clientid = ?",
+        dbName: realm,
+        params: [userId, client]);
+  }
+
+  /// Return data relative to the current table and the passed db
+  Future<List<dynamic>> getTableData(
+      {required int userid,
+      required String tablename,
+      required String realm,
+      String? additionalFilter}) {
+    final String sql = """SELECT json FROM sync_data
+                    INNER JOIN data on data.rowguid = sync_data.rowguid
+                    WHERE  id IN (
+                    SELECT MAX(id) FROM sync_data WHERE userid=$userid AND tablename=$tablename AND operation<>'D' 
+                    ${additionalFilter != null ? " AND $additionalFilter" : ""}
+                    GROUP BY rowguid
+                  )""";
+    return SQLiteWrapper().query(sql, dbName: realm) as Future<List<dynamic>>;
+  }
 }

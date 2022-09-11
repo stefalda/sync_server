@@ -12,7 +12,7 @@ import 'package:sync_server/db/database_repository.dart';
 void main(List<String> arguments) async {
   final parser = ArgParser()
     ..addOption("host",
-        defaultsTo: "localhost", help: "Server address, default to localhost")
+        defaultsTo: "0.0.0.0", help: "Server address, default to localhost")
     ..addOption("port",
         defaultsTo: "8080", help: "Server port, default to 8080")
     ..addOption("dbPath",
@@ -112,7 +112,19 @@ Handler init() {
         jsonEncode({'message': "User and Client unregistered successfully!"}));
   });
 
-// TODO --- Web socket implementation
+  /// Get table data
+  /// TODO - TEST
+  /// FIXME - Pass the userid
+  app.get('/data/<realm>/<table>', (Request request) async {
+    final String realm = request.routeParameter('realm');
+    final String table = request.routeParameter('table');
+    // final String userid = request.headers.values('sdad');
+    final json = await DatabaseRepository()
+        .getTableData(userid: 8, tablename: table, realm: realm);
+    return Response.ok(jsonEncode(json));
+  });
+
+  /// TODO --- Web socket implementation
 /*
   // Track connected clients
   var wsSessions = <WebSocketSession>[];

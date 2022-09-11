@@ -1,5 +1,22 @@
 import 'package:sync_server/shared/models/sync_data.dart';
 
+/// JSON Format
+///{
+///  clientid: string,
+///  lastSync: number,
+///  changes: []<{
+///               id: number,
+///               clientId: String,
+///               tablename: String,
+///               rowguid: String,
+///               operation: String,
+///               clientdate: Date,
+///               serverdate: Date,
+///               rowDataAsJson: String
+///               }
+/// }
+///
+
 class ClientChanges {
   late String clientId;
   late int lastSync;
