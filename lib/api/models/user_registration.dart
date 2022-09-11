@@ -3,6 +3,7 @@ class UserRegistration {
   late String password;
   late String clientId;
   String? clientDescription;
+  bool newRegistration = false;
   bool deleteRemoteData = false;
 
   static UserRegistration fromMap(Map<String, dynamic> map) {
@@ -11,6 +12,7 @@ class UserRegistration {
       ..password = map['password']
       ..clientId = map['clientId']
       ..clientDescription = map['clientDescription']
-      ..deleteRemoteData = map['deleteRemoteData'];
+      ..deleteRemoteData = map['deleteRemoteData']
+      ..newRegistration = map['newRegistration'];
   }
 }

@@ -4,6 +4,18 @@ import 'package:sync_server/db/models/user_client.dart';
 
 import '../db/database_repository.dart';
 
+enum ErrorCode { wrongPassword, emailAlreadyRegistered }
+
+class CustomException implements Exception {
+  final String cause;
+  final ErrorCode errorCode;
+  CustomException(this.cause, this.errorCode);
+  @override
+  String toString() {
+    return "$cause | ${errorCode.name}";
+  }
+}
+
 class UserHelper {
   static final UserHelper _singleton = UserHelper._internal();
   factory UserHelper() {
@@ -21,12 +33,23 @@ class UserHelper {
       User? user = await DatabaseRepository().getUser(
           userRegistration.email, userRegistration.password,
           realm: realm);
-
       if (user == null) {
+        // L'utente con quella password non è stato trovato...
+        if (!userRegistration.newRegistration) {
+          throw CustomException(
+              "Wrong email or password", ErrorCode.wrongPassword);
+        }
+        // New registration
         user = User()
           ..email = userRegistration.email
           ..password = userRegistration.password;
         user.id = await DatabaseRepository().setUser(user, realm: realm);
+      } else {
+        // User exists
+        if (userRegistration.newRegistration) {
+          throw CustomException(
+              "Email already registered", ErrorCode.emailAlreadyRegistered);
+        }
       }
       // Adesso inserisci la riga sulla tabella degli UserClient
       UserClient? userClientOpt = await DatabaseRepository()

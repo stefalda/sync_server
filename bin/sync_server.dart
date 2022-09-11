@@ -95,7 +95,12 @@ Handler init() {
     final String body = await request.body.asString;
     final UserRegistration userRegistration =
         UserRegistration.fromMap(jsonDecode(body));
-    await UserHelper().register(userRegistration, realm: realm);
+    try {
+      await UserHelper().register(userRegistration, realm: realm);
+    } catch (exception) {
+      // Error loggin in...
+      return Response.internalServerError(body: exception.toString());
+    }
     return Response.ok(
         jsonEncode({'message': 'User and Client registered successfully!'}));
   });

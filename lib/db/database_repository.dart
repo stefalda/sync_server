@@ -102,6 +102,17 @@ class DatabaseRepository {
     return user;
   }
 
+  /// Check if the user/email exists but there's a wrong password
+  Future<bool> wrongPassword(String email, String password,
+      {required String realm}) async {
+    final int count = await SQLiteWrapper().query(
+        "SELECT COUNT(*) FROM ${User.table} WHERE email = ? AND password <> ?",
+        params: [email, password],
+        singleResult: true,
+        dbName: realm);
+    return count > 0;
+  }
+
   /// Insert or Update the user data
   Future setUser(User user, {required String realm}) async {
     if (user.id == null) {
