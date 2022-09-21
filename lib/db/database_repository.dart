@@ -7,6 +7,7 @@ import 'package:sync_server/shared/models/sync_data.dart';
 
 class DatabaseRepository {
   String _basePath = ".";
+  List<String> realmInitialized = [];
 
   static final DatabaseRepository _singleton = DatabaseRepository._internal();
   factory DatabaseRepository() {
@@ -24,7 +25,9 @@ class DatabaseRepository {
   Open or create a DB for the passed realm
   */
   openTheDB(String realm) async {
-    await _initDB(realm: realm);
+    if (!realmInitialized.contains(realm)) {
+      await _initDB(realm: realm);
+    }
   }
 
   closeTheDB(String realm) async {
@@ -52,6 +55,8 @@ class DatabaseRepository {
         .openDB(dbPath, onCreate: () => onCreate(realm: realm!), dbName: realm);
     // Print where the database is stored
     print("Database path: ${dbInfo.path}");
+    // Prevent other initializations for this realm
+    realmInitialized.add(realm!);
   }
 
   Future<void> onCreate({required String realm}) async {
@@ -85,6 +90,12 @@ class DatabaseRepository {
               json text NOT NULL
           );
 
+          CREATE TABLE IF NOT EXISTS user_tokens (
+              clientid varchar(36) PRIMARY KEY NOT NULL, 
+              token varchar(35) NOT NULL,
+              refreshtoken varchar(35) NOT NULL,
+              lastrefresh timestamp(128));
+
          -- INSERT INTO users ( email, password) values ('stefano.falda@gmail.com', 'sandman');
           """;
     await SQLiteWrapper().execute(sql, dbName: realm);
@@ -93,6 +104,7 @@ class DatabaseRepository {
   /// Return the user from the email/password passed
   Future<User?> getUser(String email, String password,
       {required String realm}) async {
+    await openTheDB(realm);
     final User? user = await SQLiteWrapper().query(
         "SELECT * FROM ${User.table} WHERE email = ? AND password = ?",
         params: [email, password],
@@ -246,14 +258,17 @@ class DatabaseRepository {
       {required int userid,
       required String tablename,
       required String realm,
-      String? additionalFilter}) {
+      String? additionalFilter}) async {
+    await openTheDB(realm);
     final String sql = """SELECT json FROM sync_data
                     INNER JOIN data on data.rowguid = sync_data.rowguid
                     WHERE  id IN (
-                    SELECT MAX(id) FROM sync_data WHERE userid=$userid AND tablename=$tablename AND operation<>'D' 
+                    SELECT MAX(id) FROM sync_data WHERE userid=? AND tablename=? AND operation<>'D' 
                     ${additionalFilter != null ? " AND $additionalFilter" : ""}
                     GROUP BY rowguid
                   )""";
-    return SQLiteWrapper().query(sql, dbName: realm) as Future<List<dynamic>>;
+    final result = await SQLiteWrapper()
+        .query(sql, dbName: realm, params: [userid, tablename]);
+    return List.from(result);
   }
 }
