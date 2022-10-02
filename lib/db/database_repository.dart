@@ -1,9 +1,11 @@
 //import 'package:path_provider/path_provider.dart';
+import 'package:crypt/crypt.dart';
 import 'package:sqlite_wrapper/sqlite_wrapper.dart';
 import 'package:sync_server/db/models/data.dart';
 import 'package:sync_server/db/models/user.dart';
 import 'package:sync_server/db/models/user_client.dart';
 import 'package:sync_server/shared/models/sync_data.dart';
+import 'package:uuid/uuid.dart';
 
 class DatabaseRepository {
   String _basePath = ".";
@@ -26,12 +28,17 @@ class DatabaseRepository {
   */
   openTheDB(String realm) async {
     if (!realmInitialized.contains(realm)) {
+      print('Opening the DB: $realm');
       await _initDB(realm: realm);
     }
   }
 
   closeTheDB(String realm) async {
+    print('Closing the DB: $realm');
     SQLiteWrapper().closeDB(dbName: realm);
+    if (realmInitialized.contains(realm)) {
+      realmInitialized.remove(realm);
+    }
   }
 
   _initDB({inMemory = false, random = false, String? realm}) async {
@@ -74,8 +81,10 @@ class DatabaseRepository {
 
           CREATE TABLE IF NOT EXISTS users (
               id integer PRIMARY KEY AUTOINCREMENT NOT NULL, 
+              name varchar(255),
               email varchar(255) NOT NULL,  
-              password varchar(255) NOT NULL);
+              password varchar(255) NOT NULL,
+              salt varchar(255) NOT NULL);
               
           CREATE TABLE IF NOT EXISTS user_clients (
               id integer PRIMARY KEY AUTOINCREMENT NOT NULL, 
@@ -95,8 +104,6 @@ class DatabaseRepository {
               token varchar(35) NOT NULL,
               refreshtoken varchar(35) NOT NULL,
               lastrefresh timestamp(128));
-
-         -- INSERT INTO users ( email, password) values ('stefano.falda@gmail.com', 'sandman');
           """;
     await SQLiteWrapper().execute(sql, dbName: realm);
   }
@@ -105,28 +112,26 @@ class DatabaseRepository {
   Future<User?> getUser(String email, String password,
       {required String realm}) async {
     await openTheDB(realm);
+
     final User? user = await SQLiteWrapper().query(
-        "SELECT * FROM ${User.table} WHERE email = ? AND password = ?",
-        params: [email, password],
+        "SELECT * FROM ${User.table} WHERE email = ?",
+        params: [email],
         fromMap: User.fromMap,
         singleResult: true,
         dbName: realm);
-    return user;
-  }
-
-  /// Check if the user/email exists but there's a wrong password
-  Future<bool> wrongPassword(String email, String password,
-      {required String realm}) async {
-    final int count = await SQLiteWrapper().query(
-        "SELECT COUNT(*) FROM ${User.table} WHERE email = ? AND password <> ?",
-        params: [email, password],
-        singleResult: true,
-        dbName: realm);
-    return count > 0;
+    if (user == null) return null;
+    // Check the password
+    if (user.password == encryptPassword(password, user.salt!)) {
+      return user;
+    }
+    return null;
   }
 
   /// Insert or Update the user data
   Future setUser(User user, {required String realm}) async {
+    // Encrypt the password
+    user.salt ??= Uuid().v4();
+    user.password = encryptPassword(user.password!, user.salt!);
     if (user.id == null) {
       return SQLiteWrapper().insert(user.toMap(), User.table, dbName: realm);
     } else {
@@ -270,5 +275,9 @@ class DatabaseRepository {
     final result = await SQLiteWrapper()
         .query(sql, dbName: realm, params: [userid, tablename]);
     return List.from(result);
+  }
+
+  String encryptPassword(String password, String salt) {
+    return Crypt.sha512(password, salt: salt).toString();
   }
 }

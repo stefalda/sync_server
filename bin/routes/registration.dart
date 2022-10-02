@@ -18,12 +18,19 @@ handleRegistrationRoutes(app, middleware) {
         UserRegistration.fromMap(jsonDecode(body));
     try {
       await UserHelper().register(userRegistration, realm: realm);
+    } on WrongPasswordException {
+      return Response(401, body: "Wrong email or password");
+    } on EmailConflictException {
+      return Response(409,
+          body: "The email is already registered, try to LOGIN instead...");
     } catch (exception) {
       // Error loggin in...
       return Response.internalServerError(body: exception.toString());
     }
-    return Response.ok(
-        jsonEncode({'message': 'User and Client registered successfully!'}));
+    return Response.ok(jsonEncode({
+      'message': 'User and Client registered successfully!',
+      'user': userRegistration
+    }));
   });
 
   /// Delete ALL user data

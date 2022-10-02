@@ -4,6 +4,11 @@ import 'package:sync_server/db/models/user_client.dart';
 
 import '../db/database_repository.dart';
 
+class WrongPasswordException implements Exception {}
+
+class EmailConflictException implements Exception {}
+
+/*
 enum ErrorCode { wrongPassword, emailAlreadyRegistered }
 
 class CustomException implements Exception {
@@ -15,6 +20,7 @@ class CustomException implements Exception {
     return "$cause | ${errorCode.name}";
   }
 }
+*/
 
 class UserHelper {
   static final UserHelper _singleton = UserHelper._internal();
@@ -25,7 +31,7 @@ class UserHelper {
   UserHelper._internal();
 
   /// Register a new user and client (or just client if the user already exists)
-  Future<void> register(UserRegistration userRegistration,
+  Future<UserRegistration> register(UserRegistration userRegistration,
       {required String realm}) async {
     await DatabaseRepository().openTheDB(realm);
     try {
@@ -36,20 +42,21 @@ class UserHelper {
       if (user == null) {
         // L'utente con quella password non è stato trovato...
         if (!userRegistration.newRegistration) {
-          throw CustomException(
-              "Wrong email or password", ErrorCode.wrongPassword);
+          throw WrongPasswordException();
         }
         // New registration
         user = User()
+          ..name = userRegistration.name
           ..email = userRegistration.email
           ..password = userRegistration.password;
         user.id = await DatabaseRepository().setUser(user, realm: realm);
       } else {
         // User exists
         if (userRegistration.newRegistration) {
-          throw CustomException(
-              "Email already registered", ErrorCode.emailAlreadyRegistered);
+          throw EmailConflictException();
         }
+        // Assign the name
+        userRegistration.name = user.name;
       }
       // Adesso inserisci la riga sulla tabella degli UserClient
       UserClient? userClientOpt = await DatabaseRepository()
@@ -59,7 +66,7 @@ class UserHelper {
           throw ("Client id already registered to another user");
         } else {
           // Il client è già correttamente associato all'utente
-          return;
+          return userRegistration;
         }
       } else {
         // Nuova registrazione
@@ -68,6 +75,7 @@ class UserHelper {
           ..clientid = userRegistration.clientId
           ..clientdetails = userRegistration.clientDescription;
         await DatabaseRepository().setUserClient(userClient, realm: realm);
+        return userRegistration;
       }
     } finally {
       await DatabaseRepository().closeTheDB(realm);

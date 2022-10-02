@@ -66,11 +66,13 @@ class AuthenticationRepository {
     await DatabaseRepository().openTheDB(realm);
 
     final sql =
-        """SELECT COUNT(*) FROM ${UserClient.table} uc INNER JOIN ${User.table} u on u.id = uc.userid WHERE 
-              u.email = ? and u.password = ? and uc.clientid=?
+        """SELECT u.password, u.salt FROM ${UserClient.table} uc INNER JOIN ${User.table} u on u.id = uc.userid WHERE 
+              u.email = ? and uc.clientid=?
     """;
-    final int count = await SQLiteWrapper().query(sql,
-        dbName: realm, params: [email, password, clientId], singleResult: true);
-    return count == 1;
+    final result = await SQLiteWrapper().query(sql,
+        dbName: realm, params: [email, clientId], singleResult: true);
+    if (result == null) return false;
+    return result['password'] ==
+        DatabaseRepository().encryptPassword(password, result['salt']);
   }
 }
