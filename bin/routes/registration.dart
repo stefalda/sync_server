@@ -17,6 +17,7 @@ handleRegistrationRoutes(app, middleware) {
     final UserRegistration userRegistration =
         UserRegistration.fromMap(jsonDecode(body));
     try {
+      // The name is added to the userRegistration variable when it's a login
       await UserHelper().register(userRegistration, realm: realm);
     } on WrongPasswordException {
       return Response(401, body: "Wrong email or password");
