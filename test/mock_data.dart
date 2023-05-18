@@ -1,5 +1,5 @@
-import 'package:sync_server/db/database_repository.dart';
 import 'package:sync_server/db/models/data.dart';
+import 'package:sync_server/db/repositories/sqlite/database_repository.dart';
 import 'package:sync_server/shared/models/sync_data.dart';
 
 import 'database_repository_test.dart';

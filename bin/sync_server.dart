@@ -1,7 +1,7 @@
 // ignore: depend_on_referenced_packages
 import 'package:args/args.dart';
 import 'package:shelf_plus/shelf_plus.dart';
-import 'package:sync_server/db/database_repository.dart';
+import 'package:sync_server/db/repositories/sqlite/database_repository.dart';
 
 import 'middleware.dart';
 import 'routes/login.dart';
@@ -34,6 +34,9 @@ void main(List<String> arguments) async {
 Middleware middleware = getMiddleware();
 
 Handler init() {
+  // final DatabaseRepositoryAbstract databaseRepostitory =
+  //     getDatabaseRepository();
+
   var app = Router().plus;
   //app.use(middleware);
   app.get('/', () => 'Hello from your sync server!');
@@ -42,7 +45,6 @@ Handler init() {
   handleRegistrationRoutes(app, middleware);
   handleSyncRoutes(app, middleware);
   handleTableDataRoutes(app, middleware);
-  //TODO
   handleWebSocket(app);
   return app;
 }

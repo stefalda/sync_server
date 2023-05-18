@@ -1,15 +1,17 @@
 import 'dart:io';
 
 import 'package:sqlite_wrapper/sqlite_wrapper.dart';
-import 'package:sync_server/db/database_repository.dart';
 import 'package:sync_server/db/models/data.dart';
 import 'package:sync_server/db/models/user.dart';
 import 'package:sync_server/db/models/user_client.dart';
+import 'package:sync_server/db/repositories/repositories.dart';
+import 'package:sync_server/db/repositories/sqlite/database_repository.dart';
 import 'package:sync_server/shared/models/sync_data.dart';
 import 'package:test/test.dart';
 
 const realm = "TEST";
 
+//DatabaseRepository databaseRepository = DatabaseRepository();
 void main() async {
   setUpAll(() async {
     // Remove the db if already existing
@@ -25,7 +27,7 @@ void main() async {
   });
 
   test('get the user data for a missing user', () async {
-    final user = await DatabaseRepository()
+    final user = await getDatabaseRepository()
         .getUser("test@test.com", "test", realm: realm);
     expect(user, isNull);
   });
@@ -34,19 +36,19 @@ void main() async {
     User user = User()
       ..email = "test@test.com"
       ..password = "test";
-    user.id = await DatabaseRepository().setUser(user, realm: realm);
+    user.id = await getDatabaseRepository().setUser(user, realm: realm);
     expect(user.id, isNotNull);
   });
 
   test('get the user data for an existing user', () async {
-    final user = await DatabaseRepository()
+    final user = await getDatabaseRepository()
         .getUser("test@test.com", "test", realm: realm);
     expect(user, isNotNull);
   });
 
   test('get a missing user client', () async {
     final userClient =
-        await DatabaseRepository().getUserClient("1234567890", realm: realm);
+        await getDatabaseRepository().getUserClient("1234567890", realm: realm);
     expect(userClient, isNull);
   });
 
@@ -56,29 +58,29 @@ void main() async {
       ..userid = 1
       ..clientdetails = "TEST INSERT";
     final userClientId =
-        await DatabaseRepository().setUserClient(userClient, realm: realm);
+        await getDatabaseRepository().setUserClient(userClient, realm: realm);
     expect(userClientId, isNotNull);
   });
 
   test('get an existing user client', () async {
     final userClient =
-        await DatabaseRepository().getUserClient("1234567890", realm: realm);
+        await getDatabaseRepository().getUserClient("1234567890", realm: realm);
     expect(userClient, isNotNull);
     expect(userClient!.id, 1);
   });
 
   test('update an existing user client', () async {
     final userClient =
-        await DatabaseRepository().getUserClient("1234567890", realm: realm);
+        await getDatabaseRepository().getUserClient("1234567890", realm: realm);
     userClient!.clientdetails = "TEST MODIFIED";
-    await DatabaseRepository().setUserClient(userClient, realm: realm);
+    await getDatabaseRepository().setUserClient(userClient, realm: realm);
 
     final userClient2 =
-        await DatabaseRepository().getUserClient("1234567890", realm: realm);
+        await getDatabaseRepository().getUserClient("1234567890", realm: realm);
     expect(userClient2!.clientdetails, "TEST MODIFIED");
   });
   test('Check if another userclient is syncing', () async {
-    final UserClient? userClient = await DatabaseRepository()
+    final UserClient? userClient = await getDatabaseRepository()
         .getUserClientSyncingByUserIdAndNotClientId(1, "1234567890",
             realm: realm);
     expect(userClient, isNull);
@@ -90,9 +92,9 @@ void main() async {
       ..syncing = now
       ..clientdetails = "SECONDARY CLIENT";
     final newId =
-        await DatabaseRepository().setUserClient(userClient2, realm: realm);
+        await getDatabaseRepository().setUserClient(userClient2, realm: realm);
     expect(newId, 2);
-    final UserClient? userClientSyncing = await DatabaseRepository()
+    final UserClient? userClientSyncing = await getDatabaseRepository()
         .getUserClientSyncingByUserIdAndNotClientId(1, "1234567890",
             realm: realm);
     expect(userClientSyncing, isNotNull);
@@ -111,25 +113,26 @@ void main() async {
         ..clientdate = DateTime.now().toUtc()
         ..tablename = "todos"
         ..serverdate = DateTime.now().toUtc();
-      final id = await DatabaseRepository().setSyncData(syncData, realm: realm);
+      final id =
+          await getDatabaseRepository().setSyncData(syncData, realm: realm);
       expect(id, 1);
 
       Data data = Data()
         ..rowguid = "A"
         ..json = "{}";
-      final id2 = await DatabaseRepository().setRowData(data, realm: realm);
+      final id2 = await getDatabaseRepository().setRowData(data, realm: realm);
       expect(id2, 1);
     });
 
     test("Check for modifications", () async {
-      List<SyncData> changes = await DatabaseRepository()
+      List<SyncData> changes = await getDatabaseRepository()
           .getServerChanges(userid: 1, since: 0, realm: realm);
       expect(changes.length, 1);
     });
   });
 
   test("Delete all user data", () async {
-    await DatabaseRepository().deleteUserData(1, realm: realm);
+    await getDatabaseRepository().deleteUserData(1, realm: realm);
     // Prova a trovare l'utente
     final int count = await SQLiteWrapper().query(
         "SELECT COUNT(*) FROM ${User.table} WHERE id = ?",

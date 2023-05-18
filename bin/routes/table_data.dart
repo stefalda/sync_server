@@ -1,6 +1,5 @@
 import 'package:shelf_plus/shelf_plus.dart';
-import 'package:sync_server/db/authentication_repository.dart';
-import 'package:sync_server/db/database_repository.dart';
+import 'package:sync_server/db/repositories/repositories.dart';
 
 import '../authentication_helper.dart';
 
@@ -15,9 +14,9 @@ handleTableDataRoutes(app, middleware) {
       final String table = request.routeParameter('table');
       final String token =
           AuthenticationHelper.tokenAuthenticationData(request)!;
-      final int userid = await AuthenticationRepository.getUserIdFromToken(
-          token: token, realm: realm);
-      final json = await DatabaseRepository()
+      final int userid = await AuthenticationHelper.authenticationRepository
+          .getUserIdFromToken(token: token, realm: realm);
+      final json = await getDatabaseRepository()
           .getTableData(userid: userid, tablename: table, realm: realm);
       return Response.ok(json.toString());
     },

@@ -12,6 +12,7 @@ dependencies:
   sqlite_wrapper: ^0.1.1
   uuid: ^3.0.6
   crypt: ^4.2.1
+  postgres: ^2.6.1
   #  path: ../../../open-source/sqlite_wrapper
   #path_provider: ^2.0.10
 

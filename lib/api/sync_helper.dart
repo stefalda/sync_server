@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:sync_server/api/models/sync_details.dart';
 import 'package:sync_server/api/models/sync_info.dart';
-import 'package:sync_server/db/database_repository.dart';
 import 'package:sync_server/db/models/data.dart';
 import 'package:sync_server/db/models/user_client.dart';
+import 'package:sync_server/db/repositories/repositories.dart';
 import 'package:sync_server/shared/models/sync_data.dart';
 
 class SyncHelper {
@@ -15,12 +15,12 @@ class SyncHelper {
       required List<SyncData> clientChanges,
       required String realm}) async {
     final SyncDetails syncDetails = SyncDetails();
-    await DatabaseRepository().openTheDB(realm);
+    await getDatabaseRepository().openTheDB(realm);
     UserClient? userClient;
     try {
       // Ottieni il client
       userClient =
-          await DatabaseRepository().getUserClient(clientid, realm: realm);
+          await getDatabaseRepository().getUserClient(clientid, realm: realm);
       if (userClient == null) {
         throw Exception("Client id not found!");
       }
@@ -31,12 +31,12 @@ class SyncHelper {
       }
       // Segna la sincronizzazione come attiva
       userClient.syncing = DateTime.now().toUtc();
-      DatabaseRepository().setUserClient(userClient, realm: realm);
+      getDatabaseRepository().setUserClient(userClient, realm: realm);
 
       // Ottieni la data
 
       // Cicla sui cambiamenti presenti sul server
-      final List<SyncData> serverChanges = await DatabaseRepository()
+      final List<SyncData> serverChanges = await getDatabaseRepository()
           .getServerChanges(
               userid: userClient.userid,
               since: userClient.lastsync.millisecondsSinceEpoch,
@@ -66,7 +66,7 @@ class SyncHelper {
       // a meno che si tratti di una cancellazione
       for (SyncData serverChange in serverChanges) {
         if (serverChange.operation != "D") {
-          serverChange.rowData = jsonDecode(await DatabaseRepository()
+          serverChange.rowData = jsonDecode(await getDatabaseRepository()
               .getRowDataValue(serverChange.rowguid, realm: realm));
         }
       }
@@ -79,11 +79,11 @@ class SyncHelper {
       // Mark sync as completed
       if (userClient != null) {
         userClient.syncing = null;
-        await DatabaseRepository().setUserClient(userClient, realm: realm);
+        await getDatabaseRepository().setUserClient(userClient, realm: realm);
       }
       rethrow;
     } finally {
-      DatabaseRepository().closeTheDB(realm);
+      getDatabaseRepository().closeTheDB(realm);
     }
   }
 
@@ -91,14 +91,14 @@ class SyncHelper {
   /// Se la sincronizzazione è troppo vecchia la rimuove...
   static Future<bool> isAlreadySyncing(int userid, String clientid,
       {required String realm}) async {
-    final UserClient? userClient = await DatabaseRepository()
+    final UserClient? userClient = await getDatabaseRepository()
         .getUserClientSyncingByUserIdAndNotClientId(userid, clientid,
             realm: realm);
     if (userClient == null || userClient.syncing == null) return false;
     // Verifica se la sincronizzazione dura da più di 5', nel caso annullala
     if (DateTime.now().difference(userClient.syncing!).inMinutes > 5) {
       userClient.syncing = null;
-      DatabaseRepository().setUserClient(userClient, realm: realm);
+      getDatabaseRepository().setUserClient(userClient, realm: realm);
       return false;
     }
     return true;
@@ -109,11 +109,11 @@ class SyncHelper {
       required int lastSync,
       required List<SyncData> clientChanges,
       required String realm}) async {
-    await DatabaseRepository().openTheDB(realm);
+    await getDatabaseRepository().openTheDB(realm);
     try {
       // Ottieni il client
       final UserClient? userClient =
-          await DatabaseRepository().getUserClient(clientid, realm: realm);
+          await getDatabaseRepository().getUserClient(clientid, realm: realm);
       if (userClient == null) {
         throw Exception("Client id not found!");
       }
@@ -133,23 +133,23 @@ class SyncHelper {
         clientChange.serverdate = DateTime.now().toUtc();
         clientChange.userid = userClient.userid;
         clientChange.clientid = clientid;
-        await DatabaseRepository().setSyncData(clientChange, realm: realm);
+        await getDatabaseRepository().setSyncData(clientChange, realm: realm);
       }
       // Aggiorna la data di ultima sincronizzazione per il client
       userClient.lastsync = DateTime.now().toUtc();
       userClient.syncing = null;
-      await DatabaseRepository().setUserClient(userClient, realm: realm);
+      await getDatabaseRepository().setUserClient(userClient, realm: realm);
       return SyncInfo(DateTime.now());
     } finally {
-      DatabaseRepository().closeTheDB(realm);
+      getDatabaseRepository().closeTheDB(realm);
     }
   }
 
   /// Provvedi alle operazioni di inserimento, aggiornamento e cancellazione sulla tabella indicata
   static processData(SyncData syncData, int userid,
       {required String realm}) async {
-    Data? data =
-        await DatabaseRepository().getRowData(syncData.rowguid, realm: realm);
+    Data? data = await getDatabaseRepository()
+        .getRowData(syncData.rowguid, realm: realm);
     if (data == null) {
       data = Data()
         ..rowguid = syncData.rowguid
@@ -159,6 +159,6 @@ class SyncHelper {
         data.json = syncData.rowDataAsJson!;
       }
     }
-    await DatabaseRepository().setRowData(data, realm: realm);
+    await getDatabaseRepository().setRowData(data, realm: realm);
   }
 }

@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:shelf_plus/shelf_plus.dart';
-import 'package:sync_server/db/authentication_repository.dart';
 import 'package:sync_server/db/models/user_token.dart';
 import 'package:uuid/uuid.dart';
 
@@ -60,11 +59,12 @@ handleLoginRoutes(app, middleware) {
       final realm = request.routeParameter('realm');
 
       // Verify that simpleauthentication data and clientid match
-      final bool check = await AuthenticationRepository.checkClientId(
-          email: simpleAuthentication!.username,
-          password: simpleAuthentication.password,
-          clientId: clientId,
-          realm: realm);
+      final bool check = await AuthenticationHelper.authenticationRepository
+          .checkClientId(
+              email: simpleAuthentication!.username,
+              password: simpleAuthentication.password,
+              clientId: clientId,
+              realm: realm);
       if (!check) {
         return Response.forbidden({
           'message': 'Invalid clientid for current username and password'
@@ -77,8 +77,8 @@ handleLoginRoutes(app, middleware) {
       userToken.refreshToken = Uuid().v4();
       userToken.lastRefresh = DateTime.now();
       userToken.clientId = clientId;
-      await AuthenticationRepository.updateToken(
-          userToken: userToken, realm: realm);
+      await AuthenticationHelper.authenticationRepository
+          .updateToken(userToken: userToken, realm: realm);
       final token = Token.fromUserToken(userToken);
       return Response.ok(jsonEncode(token.toJson()));
     },
@@ -93,8 +93,8 @@ handleLoginRoutes(app, middleware) {
     final refreshToken = refreshTokenData['refresh_token'];
     final realm = request.routeParameter('realm');
     //  Verify RefreshToken
-    final userToken = await AuthenticationRepository.getTokenFromRefreshToken(
-        refreshToken: refreshToken, realm: realm);
+    final userToken = await AuthenticationHelper.authenticationRepository
+        .getTokenFromRefreshToken(refreshToken: refreshToken, realm: realm);
     if (userToken == null) {
       return Response.forbidden(
           {'message': 'Invalid refresh token, please relogin'}.toString());
@@ -103,8 +103,8 @@ handleLoginRoutes(app, middleware) {
     userToken.token = Uuid().v4();
     userToken.refreshToken = Uuid().v4();
     userToken.lastRefresh = DateTime.now();
-    await AuthenticationRepository.updateToken(
-        userToken: userToken, realm: realm);
+    await AuthenticationHelper.authenticationRepository
+        .updateToken(userToken: userToken, realm: realm);
     final token = Token.fromUserToken(userToken);
     return Response.ok(jsonEncode(token.toJson()));
   });

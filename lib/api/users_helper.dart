@@ -1,8 +1,7 @@
 import 'package:sync_server/api/models/user_registration.dart';
 import 'package:sync_server/db/models/user.dart';
 import 'package:sync_server/db/models/user_client.dart';
-
-import '../db/database_repository.dart';
+import 'package:sync_server/db/repositories/repositories.dart';
 
 class WrongPasswordException implements Exception {}
 
@@ -33,10 +32,10 @@ class UserHelper {
   /// Register a new user and client (or just client if the user already exists)
   Future<UserRegistration> register(UserRegistration userRegistration,
       {required String realm}) async {
-    await DatabaseRepository().openTheDB(realm);
+    await getDatabaseRepository().openTheDB(realm);
     try {
       //Verifica se lo username è corretto
-      User? user = await DatabaseRepository().getUser(
+      User? user = await getDatabaseRepository().getUser(
           userRegistration.email, userRegistration.password,
           realm: realm);
       if (user == null) {
@@ -49,7 +48,7 @@ class UserHelper {
           ..name = userRegistration.name
           ..email = userRegistration.email
           ..password = userRegistration.password;
-        user.id = await DatabaseRepository().setUser(user, realm: realm);
+        user.id = await getDatabaseRepository().setUser(user, realm: realm);
       } else {
         // User exists
         if (userRegistration.newRegistration) {
@@ -59,7 +58,7 @@ class UserHelper {
         userRegistration.name = user.name;
       }
       // Adesso inserisci la riga sulla tabella degli UserClient
-      UserClient? userClientOpt = await DatabaseRepository()
+      UserClient? userClientOpt = await getDatabaseRepository()
           .getUserClient(userRegistration.clientId, realm: realm);
       if (userClientOpt != null) {
         if (userClientOpt.userid != user.id) {
@@ -74,20 +73,20 @@ class UserHelper {
           ..userid = user.id!
           ..clientid = userRegistration.clientId
           ..clientdetails = userRegistration.clientDescription;
-        await DatabaseRepository().setUserClient(userClient, realm: realm);
+        await getDatabaseRepository().setUserClient(userClient, realm: realm);
         return userRegistration;
       }
     } finally {
-      await DatabaseRepository().closeTheDB(realm);
+      await getDatabaseRepository().closeTheDB(realm);
     }
   }
 
   /// Delete all sync data associated to the user
   unregister(UserRegistration userRegistration, {required String realm}) async {
     //Verifica se lo username è corretto
-    await DatabaseRepository().openTheDB(realm);
+    await getDatabaseRepository().openTheDB(realm);
     try {
-      User? user = await DatabaseRepository().getUser(
+      User? user = await getDatabaseRepository().getUser(
           userRegistration.email, userRegistration.password,
           realm: realm);
       if (user == null) {
@@ -95,14 +94,14 @@ class UserHelper {
       }
       if (userRegistration.deleteRemoteData) {
         // Delete from all tables
-        await DatabaseRepository().deleteUserData(user.id!, realm: realm);
+        await getDatabaseRepository().deleteUserData(user.id!, realm: realm);
       } else {
         // Delete only the client
-        await DatabaseRepository()
+        await getDatabaseRepository()
             .deleteClient(user.id!, userRegistration.clientId, realm: realm);
       }
     } finally {
-      await DatabaseRepository().closeTheDB(realm);
+      await getDatabaseRepository().closeTheDB(realm);
     }
   }
 }

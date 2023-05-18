@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:shelf_plus/shelf_plus.dart';
-import 'package:sync_server/db/authentication_repository.dart';
-import 'package:sync_server/db/database_repository.dart';
 import 'package:sync_server/db/models/user_token.dart';
+import 'package:sync_server/db/repositories/authentication_repository_abstract.dart';
+import 'package:sync_server/db/repositories/repositories.dart';
 
 class SimpleAuthentication {
   final String username;
@@ -20,6 +20,9 @@ class TokenAuthentication {
 }
 
 class AuthenticationHelper {
+  static AuthenticationRepositoryAbstract authenticationRepository =
+      getAuthenticationRepository();
+
   /// Extract the username and password from the simpleauthenticated request
   static SimpleAuthentication? simpleAuthenticationData(Request request) {
     try {
@@ -58,7 +61,7 @@ class AuthenticationHelper {
     }
     String realm = request.routeParameter("realm");
     // Check the db
-    final user = await DatabaseRepository().getUser(
+    final user = await getDatabaseRepository().getUser(
         simpleAuthentication.username, simpleAuthentication.password,
         realm: realm);
     if (user == null) {
@@ -83,7 +86,7 @@ class AuthenticationHelper {
     // Get the token data from the DB
     String realm = request.routeParameter("realm");
     final userToken =
-        await AuthenticationRepository.getToken(token: token, realm: realm);
+        await authenticationRepository.getToken(token: token, realm: realm);
     // Unknown token
     if (userToken == null) {
       return Response.forbidden({'message': 'Wrong token'}.toString());
@@ -100,6 +103,6 @@ class AuthenticationHelper {
   static Future<UserToken?> getUserTokenFromRequest(Request request) async {
     final String realm = request.routeParameter('realm');
     final String token = AuthenticationHelper.tokenAuthenticationData(request)!;
-    return await AuthenticationRepository.getToken(token: token, realm: realm);
+    return await authenticationRepository.getToken(token: token, realm: realm);
   }
 }

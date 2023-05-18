@@ -16,6 +16,5 @@ getMiddleware() {
       // Use bearer authentication
       return await AuthenticationHelper.checkBearerAuthentication(request);
     }
-    return null;
   });
 }

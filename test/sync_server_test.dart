@@ -7,9 +7,10 @@ import 'package:sync_server/api/models/sync_info.dart';
 import 'package:sync_server/api/models/user_registration.dart';
 import 'package:sync_server/api/sync_helper.dart';
 import 'package:sync_server/api/users_helper.dart';
-import 'package:sync_server/db/database_repository.dart';
 import 'package:sync_server/db/models/data.dart';
 import 'package:sync_server/db/models/user_client.dart';
+import 'package:sync_server/db/repositories/repositories.dart';
+import 'package:sync_server/db/repositories/sqlite/database_repository.dart';
 import 'package:sync_server/shared/models/sync_data.dart';
 import 'package:test/test.dart';
 
@@ -42,7 +43,7 @@ void main() {
     test("get the registered client info", () async {
       // Get the client device
       UserClient? userClient =
-          await DatabaseRepository().getUserClient("CLIENT1", realm: realm);
+          await getDatabaseRepository().getUserClient("CLIENT1", realm: realm);
       expect(userClient, isNotNull);
       expect(userClient?.userid, 1);
     });
@@ -107,7 +108,7 @@ void main() {
     });
 
     test('try to push from client2', () async {
-      await DatabaseRepository().openTheDB(realm);
+      await getDatabaseRepository().openTheDB(realm);
       List<SyncData> changes = getClientChanges();
       changes = changes
           .where((value) =>
@@ -121,13 +122,14 @@ void main() {
           realm: realm);
       // Data should be the list of server data not conflicting with client
       expect(syncInfo.lastSync, isNotNull);
-      await DatabaseRepository().openTheDB(realm);
+      await getDatabaseRepository().openTheDB(realm);
       final int count = await SQLiteWrapper().query(
           "SELECT COUNT(*) FROM ${Data.table}",
           singleResult: true,
           dbName: realm);
       expect(count, 8);
-      Data? data = await DatabaseRepository().getRowData("teta", realm: realm);
+      Data? data =
+          await getDatabaseRepository().getRowData("teta", realm: realm);
       expect(data, isNotNull);
       expect(jsonDecode(data!.json)["fairytale"], "Cenerentola");
     });
